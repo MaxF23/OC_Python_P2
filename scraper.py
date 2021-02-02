@@ -2,7 +2,6 @@ import requests
 from bs4 import BeautifulSoup
 import csv342 as csv
 import os
-import shutil
 
 
 # All categories URL from Books index page
