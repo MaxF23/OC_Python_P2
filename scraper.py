@@ -12,32 +12,31 @@ import os
 
 # Dictionary to csv
 # Pandas lib to read csv? User input category?
-bs = ''
 
 
 # Function Title
-def title():
-    return bs.find('h1').text.replace(',', '')
+def title(url):
+    return request(url).find('h1').text.replace(',', '')
 
 
 # Function Category
-def category():
-    cat = bs.find('ul', {'class': 'breadcrumb'})
+def category(url):
+    cat = request(url).find('ul', {'class': 'breadcrumb'})
     cat_a = cat.find_all('a')
     return cat_a[2].text
 
 
 # Function Review rating
-def review_rating():
-    star_rating = str(bs.find('p', {'class': 'star-rating'}))
+def review_rating(url):
+    star_rating = str(request(url).find('p', {'class': 'star-rating'}))
     # star rating is now a string and the number of stars is between str[22] and str[27]
     star_review = star_rating[22:27].split('"')
     return star_review[0]
 
 
 # Function Image URL
-def img_url():
-    image_url = bs.find('div', {'class': 'item active'}).find()
+def img_url(url):
+    image_url = request(url).find('div', {'class': 'item active'}).find()
     # <img alt="The Black Maria" src="../../media/cache/d1/7a/d17a3e313e52e1be5651719e4fba1d16.jpg"/>
     img_url_temp = str(image_url).split('"')
     # ['<img alt=', 'The Black Maria', ' src=', '../../media/cache/d1/7a/d17a3e313e52e1be5651719e4fba1d16.jpg',
@@ -45,57 +44,56 @@ def img_url():
     return 'http://books.toscrape.com/' + img_url_temp[3].replace('../', '')
 
 
-# Function Description
-def description():
-    desc = bs.find_all('p')
+# Description
+def description(url):
+    desc = request(url).find_all('p')
     return desc[3].text.replace(',', ' ')
 
 
-# Function UPC
-def upc():
-    product_info = bs.find_all('tr')
+# UPC
+def upc(url):
+    product_info = request(url).find_all('tr')
     # Info <td> in each <tr>
     return product_info[0].find('td').text
 
 
-# Function price_in_tax
-def price_in_tax():
-    product_info = bs.find_all('tr')
+# price_in_tax
+def price_in_tax(url):
+    product_info = request(url).find_all('tr')
     price = product_info[3].find('td').text
     return str(price).replace('Â', '')
 
 
-# Function price_ex_tax
-def price_ex_tax():
-    product_info = bs.find_all('tr')
+# price_ex_tax
+def price_ex_tax(url):
+    product_info = request(url).find_all('tr')
     price = product_info[2].find('td').text
     return str(price).replace('Â', '')
 
 
-# Function Nb_available
-def nb_available():
-    product_info = bs.find_all('tr')
+# Nb_available
+def nb_available(url):
+    product_info = request(url).find_all('tr')
     return product_info[5].find('td').text
 
 
-# Function request
+# request
 def request(url):
     response = requests.get(url)
     if response.ok:
-        global bs
-        bs = BeautifulSoup(response.text, 'html.parser')
+        return BeautifulSoup(response.text, 'html.parser')
 
 
-# Function make_url
+# make_url
 def make_url(name, url):
     return 'http://books.toscrape.com/catalogue/' + str(name) + str(url).replace('../', '')
 
 
 # Get image
-def get_image(liste):
+def get_image(list):
     dir_path = os.getcwd() + '/Images'
-    for i in range(len(liste)):
-        url = liste[i]
+    for i in range(len(list)):
+        url = list[i]
         page = requests.get(url)
         if not os.path.exists(dir_path):
             os.mkdir(dir_path)
@@ -111,15 +109,14 @@ def category_pages():
     books = 0
     for i in range(len(categories_url)):
         url = categories_url[i]
-        request(url)
         # Page(s) per category
-        results = bs.find('form', {'class': 'form-horizontal'})
+        results = request(url).find('form', {'class': 'form-horizontal'})
         nb_books = results.find('strong')
         nb_page_category = int((int(nb_books.text)) / 20) + 1
         # All books URL from categories pages URL
         # All books URL per category
         if nb_page_category == 1:  # /index.html if only one page
-            all_h3 = bs.find_all('h3')
+            all_h3 = request(url).find_all('h3')
             for h3 in all_h3:
                 a = h3.find('a')  # <a> in <h3> contains href=URL + title
                 url2 = a['href']
@@ -130,14 +127,13 @@ def category_pages():
         else:  # /page-x.html if multiple page
             for j in range(nb_page_category):
                 url3 = url.replace('index.html', 'page-') + str(j + 1) + '.html'
-                request(url3)
                 # All books URL in one page
                 # <h3>
                 #   <a href="catalogue/a-light-in-the-attic_1000/index.html"
                 #      title="A Light in the Attic">A Light in the ...
                 #   </a>
                 # </h3>
-                all_h3 = bs.find_all('h3')
+                all_h3 = request(url3).find_all('h3')
                 for h3 in all_h3:
                     a = h3.find('a')  # <a> in <h3> contains href=URL + title
                     url4 = a['href']
@@ -145,13 +141,13 @@ def category_pages():
                     books_url.append(make_url(name, url4))
                     books += 1
                     print(str(books) + ' books')
+
 # All categories URL from Books index page
 categories_url = []
 name = 'category/'
 books_url = []
 url = 'http://books.toscrape.com/catalogue/category/books_1/page-1.html'
-request(url)
-all_ul = bs.find('div', {'class': 'side_categories'})
+all_ul = request(url).find('div', {'class': 'side_categories'})
 all_li = all_ul.find_all('li')
 for li in all_li:
     a = li.find('a')
@@ -176,16 +172,16 @@ x = 0
 z = 1
 for j in range(len(books_url)):
     book_url = books_url[j]
-    request(book_url)
-    titles.append(title())
+    img_urls.append(img_url(book_url))
+    titles.append(title(book_url))
+    """
     categories.append(category())
     prices_ex_tax.append(price_ex_tax())
     prices_in_tax.append(price_in_tax())
     review_ratings.append(review_rating())
     nb_in_stock.append(nb_available())
-    img_urls.append(img_url())
     UPCs.append(upc())
-    descriptions.append(description())
+    descriptions.append(description())"""
     x += 1
     y = int(x / 10)
     if y != z:
@@ -193,7 +189,7 @@ for j in range(len(books_url)):
     z = y
 
 get_image(img_urls)
-Books_info = {'product_page_url': books_url,
+"""Books_info = {'product_page_url': books_url,
               'universal_product_code': UPCs,
               'title': titles,
               'price_including_tax': prices_in_tax,
@@ -207,4 +203,4 @@ Books_info = {'product_page_url': books_url,
 
 with open('books.csv', 'w') as f:
     w = csv.writer(f)
-    w.writerows(Books_info.items())
+    w.writerows(Books_info.items())"""
