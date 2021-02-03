@@ -15,28 +15,28 @@ import os
 
 
 # Function Title
-def title(url):
-    return request(url).find('h1').text.replace(',', '')
+def title(bs):
+    return bs.find('h1').text.replace(',', '')
 
 
 # Function Category
-def category(url):
-    cat = request(url).find('ul', {'class': 'breadcrumb'})
+def category(bs):
+    cat = bs.find('ul', {'class': 'breadcrumb'})
     cat_a = cat.find_all('a')
     return cat_a[2].text
 
 
 # Function Review rating
-def review_rating(url):
-    star_rating = str(request(url).find('p', {'class': 'star-rating'}))
+def review_rating(bs):
+    star_rating = str(bs.find('p', {'class': 'star-rating'}))
     # star rating is now a string and the number of stars is between str[22] and str[27]
     star_review = star_rating[22:27].split('"')
     return star_review[0]
 
 
 # Function Image URL
-def img_url(url):
-    image_url = request(url).find('div', {'class': 'item active'}).find()
+def img_url(bs):
+    image_url = bs.find('div', {'class': 'item active'}).find()
     # <img alt="The Black Maria" src="../../media/cache/d1/7a/d17a3e313e52e1be5651719e4fba1d16.jpg"/>
     img_url_temp = str(image_url).split('"')
     # ['<img alt=', 'The Black Maria', ' src=', '../../media/cache/d1/7a/d17a3e313e52e1be5651719e4fba1d16.jpg',
@@ -45,35 +45,35 @@ def img_url(url):
 
 
 # Description
-def description(url):
-    desc = request(url).find_all('p')
+def description(bs):
+    desc = bs.find_all('p')
     return desc[3].text.replace(',', ' ')
 
 
 # UPC
-def upc(url):
-    product_info = request(url).find_all('tr')
+def upc(bs):
+    product_info = bs.find_all('tr')
     # Info <td> in each <tr>
     return product_info[0].find('td').text
 
 
 # price_in_tax
-def price_in_tax(url):
-    product_info = request(url).find_all('tr')
+def price_in_tax(bs):
+    product_info = bs.find_all('tr')
     price = product_info[3].find('td').text
     return str(price).replace('Â', '')
 
 
 # price_ex_tax
-def price_ex_tax(url):
-    product_info = request(url).find_all('tr')
+def price_ex_tax(bs):
+    product_info = bs.find_all('tr')
     price = product_info[2].find('td').text
     return str(price).replace('Â', '')
 
 
 # Nb_available
-def nb_available(url):
-    product_info = request(url).find_all('tr')
+def nb_available(bs):
+    product_info = bs.find_all('tr')
     return product_info[5].find('td').text
 
 
@@ -90,36 +90,37 @@ def make_url(name, url):
 
 
 # Get image
-def get_image(list):
+def get_image(url):
     dir_path = os.getcwd() + '/Images'
-    for i in range(len(list)):
-        url = list[i]
-        page = requests.get(url)
-        if not os.path.exists(dir_path):
-            os.mkdir(dir_path)
-        f_ext = os.path.splitext(url)[-1]
-        f_name = str(titles[i]).replace('/', '').replace(' ', '_') + '{}'.format(f_ext)
-        print(dir_path + '/' + f_name)
-        with open(dir_path + '/' + f_name, 'wb') as file:
-            file.write(page.content)
+    page = requests.get(url)
+    if not os.path.exists(dir_path):
+        os.mkdir(dir_path)
+    f_ext = os.path.splitext(url)[-1]
+    f_name = str(title(bs)).replace('/', '').replace(' ', '_') + '{}'.format(f_ext)
+    with open(dir_path + '/' + f_name, 'wb') as file:
+        file.write(page.content)
 
 
 # Function category_pages
-def category_pages():
+# All categories pages URL from categories URL
+def category_pages(list):
     books = 0
-    for i in range(len(categories_url)):
-        url = categories_url[i]
+    name = ''
+    books_url = []
+    for i in range(len(list)):
+        url = list[i]
         # Page(s) per category
-        results = request(url).find('form', {'class': 'form-horizontal'})
+        soup = request(url)
+        results = soup.find('form', {'class': 'form-horizontal'})
         nb_books = results.find('strong')
         nb_page_category = int((int(nb_books.text)) / 20) + 1
         # All books URL from categories pages URL
         # All books URL per category
         if nb_page_category == 1:  # /index.html if only one page
-            all_h3 = request(url).find_all('h3')
+            all_h3 = soup.find_all('h3')
             for h3 in all_h3:
-                a = h3.find('a')  # <a> in <h3> contains href=URL + title
-                url2 = a['href']
+                temp = h3.find('a')  # <a> in <h3> contains href=URL + title
+                url2 = temp['href']
                 # Add http://books.toscrape.com/ to href content for complete URL
                 books_url.append(make_url(name, url2))
                 books += 1
@@ -141,66 +142,63 @@ def category_pages():
                     books_url.append(make_url(name, url4))
                     books += 1
                     print(str(books) + ' books')
+    return books_url
 
+
+# Categories url
 # All categories URL from Books index page
-categories_url = []
-name = 'category/'
-books_url = []
+def categories_url(url):
+    categories_url = []
+    name = 'category/'
+    all_ul = request(url).find('div', {'class': 'side_categories'})
+    all_li = all_ul.find_all('li')
+    for li in all_li:
+        a = li.find('a')
+        url = a['href']
+        categories_url.append(make_url(name, url))
+    del categories_url[0]  # =http://books.toscrape.com/catalogue/category/books_1/index.html
+    return categories_url
+
+
+# Dict to csv
+def dict_to_csv(dic):
+    with open('books.csv', 'w') as f:
+        fieldnames = ['product_page_url', 'universal_product_code', 'title', 'price_including_tax',
+                      'price_excluding_tax', 'number_available', 'product_description', 'category', 'review_rating',
+                      'image_url']
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        for i in range(len(dic)):
+            writer.writerow(dic[i])
+
 url = 'http://books.toscrape.com/catalogue/category/books_1/page-1.html'
-all_ul = request(url).find('div', {'class': 'side_categories'})
-all_li = all_ul.find_all('li')
-for li in all_li:
-    a = li.find('a')
-    url = a['href']
-    categories_url.append(make_url(name, url))
-
-del categories_url[0]  # =http://books.toscrape.com/catalogue/category/books_1/index.html
-
-# All categories pages URL from categories URL
-name = ''
-titles = []
-categories = []
-UPCs = []
-prices_ex_tax = []
-prices_in_tax = []
-nb_in_stock = []
-review_ratings = []
-descriptions = []
-img_urls = []
-category_pages()
+books_url = category_pages(categories_url(url))
+book_info = {}
 x = 0
 z = 1
 for j in range(len(books_url)):
     book_url = books_url[j]
-    img_urls.append(img_url(book_url))
-    titles.append(title(book_url))
-    """
-    categories.append(category())
-    prices_ex_tax.append(price_ex_tax())
-    prices_in_tax.append(price_in_tax())
-    review_ratings.append(review_rating())
-    nb_in_stock.append(nb_available())
-    UPCs.append(upc())
-    descriptions.append(description())"""
+    bs = request(book_url)
+    get_image(img_url(bs))
+    book_info[j] = {'product_page_url': book_url,
+                    'universal_product_code': upc(bs),
+                    'title': title(bs),
+                    'price_including_tax': price_in_tax(bs),
+                    'price_excluding_tax': price_ex_tax(bs),
+                    'number_available': nb_available(bs),
+                    'product_description': description(bs),
+                    'category': category(bs),
+                    'review_rating': review_rating(bs),
+                    'image_url': img_url(bs)
+                      }
     x += 1
     y = int(x / 10)
     if y != z:
         print('Scraping products info ' + str(y) + '%')
     z = y
 
-get_image(img_urls)
-"""Books_info = {'product_page_url': books_url,
-              'universal_product_code': UPCs,
-              'title': titles,
-              'price_including_tax': prices_in_tax,
-              'price_excluding_tax': prices_ex_tax,
-              'number_available': nb_in_stock,
-              'product_description': descriptions,
-              'category': categories,
-              'review_rating': review_ratings,
-              'image_url': img_urls
-              }
+print(len(book_info))
+dict_to_csv(book_info)
 
-with open('books.csv', 'w') as f:
-    w = csv.writer(f)
-    w.writerows(Books_info.items())"""
+
+
