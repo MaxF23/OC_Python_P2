@@ -3,17 +3,100 @@ from bs4 import BeautifulSoup
 import csv342 as csv
 import os
 
-
 # All categories URL from Books index page
 # All categories pages URL from categories URL
 # All books URL from categories pages URL
 # All Product info from books URL
 # All info into a csv file
 
-# Dictionary to csv
-# Pandas lib to read csv? User input category?
+
+# Request
+# Pull data out of a HTML page
+def request(url):
+    response = requests.get(url)
+    if response.ok:
+        return BeautifulSoup(response.text, 'html.parser')
 
 
+# make_url
+# Return a URL from a character string
+def make_url(name, char):
+    return 'http://books.toscrape.com/catalogue/' + str(name) + str(char).replace('../', '')
+
+
+# Categories url
+# All categories URL from Books index page
+def categories_url(url):
+    url_categories = []
+    name = 'category/'
+    all_ul = request(url).find('div', {'class': 'side_categories'})
+    all_li = all_ul.find_all('li')
+    for li in all_li:
+        a = li.find('a')
+        url = a['href']
+        url_categories.append(make_url(name, url))
+    del url_categories[0]  # =http://books.toscrape.com/catalogue/category/books_1/index.html
+    return url_categories
+
+
+# Function category_pages
+# All categories pages URL from categories URL return list of books URL
+def category_pages(list):
+    books = 0
+    name = ''
+    books_url = []
+    for i in range(len(list)):
+        url = list[i]
+        # Page(s) per category
+        soup = request(url)
+        results = soup.find('form', {'class': 'form-horizontal'})
+        nb_books = results.find('strong')
+        nb_page_category = int((int(nb_books.text)) / 20) + 1
+        # All books URL from categories pages URL
+        # All books URL per category
+        if nb_page_category == 1:  # /index.html if only one page
+            all_h3 = soup.find_all('h3')
+            for h3 in all_h3:
+                temp = h3.find('a')  # <a> in <h3> contains href=URL + title
+                url2 = temp['href']
+                # Add http://books.toscrape.com/ to href content for complete URL
+                books_url.append(make_url(name, url2))
+                books += 1
+                print(str(books) + ' books')
+        else:  # /page-x.html if multiple page
+            for j in range(nb_page_category):
+                url3 = url.replace('index.html', 'page-') + str(j + 1) + '.html'
+                # All books URL in one page
+                # <h3>
+                #   <a href="catalogue/a-light-in-the-attic_1000/index.html"
+                #      title="A Light in the Attic">A Light in the ...
+                #   </a>
+                # </h3>
+                all_h3 = request(url3).find_all('h3')
+                for h3 in all_h3:
+                    a = h3.find('a')  # <a> in <h3> contains href=URL + title
+                    url4 = a['href']
+                    # Add http://books.toscrape.com/ to href content for complete URL
+                    books_url.append(make_url(name, url4))
+                    books += 1
+                    print(str(books) + ' books')
+    return books_url
+
+
+# Get image
+# Download and save an image from URL
+def get_image(url):
+    dir_path = os.getcwd() + '/Images'
+    page = requests.get(url)
+    if not os.path.exists(dir_path):
+        os.mkdir(dir_path)
+    f_ext = os.path.splitext(url)[-1]
+    f_name = str(title(bs)).replace('/', '').replace(' ', '_') + '{}'.format(f_ext)
+    with open(dir_path + '/' + f_name, 'wb') as file:
+        file.write(page.content)
+
+
+# From book URL
 # Function Title
 def title(bs):
     return bs.find('h1').text.replace(',', '')
@@ -77,90 +160,8 @@ def nb_available(bs):
     return product_info[5].find('td').text
 
 
-# request
-def request(url):
-    response = requests.get(url)
-    if response.ok:
-        return BeautifulSoup(response.text, 'html.parser')
-
-
-# make_url
-def make_url(name, url):
-    return 'http://books.toscrape.com/catalogue/' + str(name) + str(url).replace('../', '')
-
-
-# Get image
-def get_image(url):
-    dir_path = os.getcwd() + '/Images'
-    page = requests.get(url)
-    if not os.path.exists(dir_path):
-        os.mkdir(dir_path)
-    f_ext = os.path.splitext(url)[-1]
-    f_name = str(title(bs)).replace('/', '').replace(' ', '_') + '{}'.format(f_ext)
-    with open(dir_path + '/' + f_name, 'wb') as file:
-        file.write(page.content)
-
-
-# Function category_pages
-# All categories pages URL from categories URL
-def category_pages(list):
-    books = 0
-    name = ''
-    books_url = []
-    for i in range(len(list)):
-        url = list[i]
-        # Page(s) per category
-        soup = request(url)
-        results = soup.find('form', {'class': 'form-horizontal'})
-        nb_books = results.find('strong')
-        nb_page_category = int((int(nb_books.text)) / 20) + 1
-        # All books URL from categories pages URL
-        # All books URL per category
-        if nb_page_category == 1:  # /index.html if only one page
-            all_h3 = soup.find_all('h3')
-            for h3 in all_h3:
-                temp = h3.find('a')  # <a> in <h3> contains href=URL + title
-                url2 = temp['href']
-                # Add http://books.toscrape.com/ to href content for complete URL
-                books_url.append(make_url(name, url2))
-                books += 1
-                print(str(books) + ' books')
-        else:  # /page-x.html if multiple page
-            for j in range(nb_page_category):
-                url3 = url.replace('index.html', 'page-') + str(j + 1) + '.html'
-                # All books URL in one page
-                # <h3>
-                #   <a href="catalogue/a-light-in-the-attic_1000/index.html"
-                #      title="A Light in the Attic">A Light in the ...
-                #   </a>
-                # </h3>
-                all_h3 = request(url3).find_all('h3')
-                for h3 in all_h3:
-                    a = h3.find('a')  # <a> in <h3> contains href=URL + title
-                    url4 = a['href']
-                    # Add http://books.toscrape.com/ to href content for complete URL
-                    books_url.append(make_url(name, url4))
-                    books += 1
-                    print(str(books) + ' books')
-    return books_url
-
-
-# Categories url
-# All categories URL from Books index page
-def categories_url(url):
-    categories_url = []
-    name = 'category/'
-    all_ul = request(url).find('div', {'class': 'side_categories'})
-    all_li = all_ul.find_all('li')
-    for li in all_li:
-        a = li.find('a')
-        url = a['href']
-        categories_url.append(make_url(name, url))
-    del categories_url[0]  # =http://books.toscrape.com/catalogue/category/books_1/index.html
-    return categories_url
-
-
 # Dict to csv
+# Save a dictionary to csv file
 def dict_to_csv(dic):
     with open('books.csv', 'w') as f:
         fieldnames = ['product_page_url', 'universal_product_code', 'title', 'price_including_tax',
@@ -196,8 +197,6 @@ for j in range(len(books_url)):
     if y != z:
         print('Scraping products info ' + str(y) + '%')
     z = y
-
-print(len(book_info))
 dict_to_csv(book_info)
 
 
