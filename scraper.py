@@ -12,8 +12,8 @@ import os
 
 # Request
 # Pull data out of a HTML page
-def request(url):
-    response = requests.get(url)
+def request(string):
+    response = requests.get(string)
     if response.ok:
         return BeautifulSoup(response.text, 'html.parser')
 
@@ -26,29 +26,29 @@ def make_url(name, char):
 
 # Categories url
 # All categories URL from Books index page
-def categories_url(url):
+def categories_url(string):
     url_categories = []
     name = 'category/'
-    all_ul = request(url).find('div', {'class': 'side_categories'})
+    all_ul = request(string).find('div', {'class': 'side_categories'})
     all_li = all_ul.find_all('li')
     for li in all_li:
-        a = li.find('a')
-        url = a['href']
-        url_categories.append(make_url(name, url))
+        tag_a = li.find('a')
+        url_temp = tag_a['href']
+        url_categories.append(make_url(name, url_temp))
     del url_categories[0]  # =http://books.toscrape.com/catalogue/category/books_1/index.html
     return url_categories
 
 
 # Function category_pages
 # All categories pages URL from categories URL return list of books URL
-def category_pages(list):
+def category_pages(lis):
     books = 0
     name = ''
     books_url = []
-    for i in range(len(list)):
-        url = list[i]
+    for i in range(len(lis)):
+        url2 = lis[i]
         # Page(s) per category
-        soup = request(url)
+        soup = request(url2)
         results = soup.find('form', {'class': 'form-horizontal'})
         nb_books = results.find('strong')
         nb_page_category = int((int(nb_books.text)) / 20) + 1
@@ -57,15 +57,15 @@ def category_pages(list):
         if nb_page_category == 1:  # /index.html if only one page
             all_h3 = soup.find_all('h3')
             for h3 in all_h3:
-                temp = h3.find('a')  # <a> in <h3> contains href=URL + title
-                url2 = temp['href']
+                tag_h3 = h3.find('a')  # <a> in <h3> contains href=URL + title
+                url_temp_2 = tag_h3['href']
                 # Add http://books.toscrape.com/ to href content for complete URL
-                books_url.append(make_url(name, url2))
+                books_url.append(make_url(name, url_temp_2))
                 books += 1
                 print(str(books) + ' books')
         else:  # /page-x.html if multiple page
             for j in range(nb_page_category):
-                url3 = url.replace('index.html', 'page-') + str(j + 1) + '.html'
+                url3 = url2.replace('index.html', 'page-') + str(j + 1) + '.html'
                 # All books URL in one page
                 # <h3>
                 #   <a href="catalogue/a-light-in-the-attic_1000/index.html"
@@ -85,12 +85,12 @@ def category_pages(list):
 
 # Get image
 # Download and save an image from URL
-def get_image(url):
+def get_image(string):
     dir_path = os.getcwd() + '/Images'
-    page = requests.get(url)
+    page = requests.get(string)
     if not os.path.exists(dir_path):
         os.mkdir(dir_path)
-    f_ext = os.path.splitext(url)[-1]
+    f_ext = os.path.splitext(string)[-1]
     f_name = str(title(bs)).replace('/', '').replace(' ', '_') + '{}'.format(f_ext)
     with open(dir_path + '/' + f_name, 'wb') as file:
         file.write(page.content)
@@ -98,28 +98,28 @@ def get_image(url):
 
 # From book URL
 # Function Title
-def title(bs):
-    return bs.find('h1').text.replace(',', '')
+def title(soup):
+    return soup.find('h1').text.replace(',', '')
 
 
 # Function Category
-def category(bs):
-    cat = bs.find('ul', {'class': 'breadcrumb'})
+def category(soup):
+    cat = soup.find('ul', {'class': 'breadcrumb'})
     cat_a = cat.find_all('a')
     return cat_a[2].text
 
 
 # Function Review rating
-def review_rating(bs):
-    star_rating = str(bs.find('p', {'class': 'star-rating'}))
+def review_rating(soup):
+    star_rating = str(soup.find('p', {'class': 'star-rating'}))
     # star rating is now a string and the number of stars is between str[22] and str[27]
     star_review = star_rating[22:27].split('"')
     return star_review[0]
 
 
 # Function Image URL
-def img_url(bs):
-    image_url = bs.find('div', {'class': 'item active'}).find()
+def img_url(soup):
+    image_url = soup.find('div', {'class': 'item active'}).find()
     # <img alt="The Black Maria" src="../../media/cache/d1/7a/d17a3e313e52e1be5651719e4fba1d16.jpg"/>
     img_url_temp = str(image_url).split('"')
     # ['<img alt=', 'The Black Maria', ' src=', '../../media/cache/d1/7a/d17a3e313e52e1be5651719e4fba1d16.jpg',
@@ -128,35 +128,35 @@ def img_url(bs):
 
 
 # Description
-def description(bs):
-    desc = bs.find_all('p')
+def description(soup):
+    desc = soup.find_all('p')
     return desc[3].text.replace(',', ' ')
 
 
 # UPC
-def upc(bs):
-    product_info = bs.find_all('tr')
+def upc(soup):
+    product_info = soup.find_all('tr')
     # Info <td> in each <tr>
     return product_info[0].find('td').text
 
 
 # price_in_tax
-def price_in_tax(bs):
-    product_info = bs.find_all('tr')
+def price_in_tax(soup):
+    product_info = soup.find_all('tr')
     price = product_info[3].find('td').text
     return str(price).replace('Â', '')
 
 
 # price_ex_tax
-def price_ex_tax(bs):
-    product_info = bs.find_all('tr')
+def price_ex_tax(soup):
+    product_info = soup.find_all('tr')
     price = product_info[2].find('td').text
     return str(price).replace('Â', '')
 
 
 # Nb_available
-def nb_available(bs):
-    product_info = bs.find_all('tr')
+def nb_available(soup):
+    product_info = soup.find_all('tr')
     return product_info[5].find('td').text
 
 
@@ -191,7 +191,7 @@ for j in range(len(books_url)):
                     'category': category(bs),
                     'review_rating': review_rating(bs),
                     'image_url': img_url(bs)
-                      }
+                    }
     x += 1
     y = int(x / 10)
     if y != z:
