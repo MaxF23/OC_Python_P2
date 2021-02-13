@@ -3,7 +3,6 @@ import requests
 
 
 # All Product info from books URL
-# All info into a csv file
 def request(string):
     response = requests.get(string)
     if response.ok:
@@ -72,3 +71,8 @@ def price_ex_tax(soup):
 def nb_available(soup):
     product_info = soup.find_all('tr')
     return product_info[5].find('td').text
+
+
+
+
+

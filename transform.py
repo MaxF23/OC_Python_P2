@@ -1,8 +1,8 @@
-# make_url
-# Return a URL from a character string
 from extract import request
 
 
+# make_url
+# Return a URL from a character string
 def make_url(name, char):
     return 'http://books.toscrape.com/catalogue/' + str(name) + str(char).replace('../', '')
 
@@ -66,6 +66,7 @@ def category_pages(lis):
     return books_url
 
 
+# Return a number from a character string
 def review_rating_number(string):
     if string[0] == 'O':
         return 1

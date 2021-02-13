@@ -1,8 +1,3 @@
-# All categories URL from Books index page
-# All categories pages URL from categories URL
-# All books URL from categories pages URL
-
-
 from extract import request, img_url, upc, price_in_tax, price_ex_tax, nb_available, description, get_review_rating, \
     title, category
 from load import save_image, dict_to_csv
@@ -40,5 +35,7 @@ for j in range(len(books_url)):
         dict_row_category = []
         title_csv = book_info[j].get("category")
     dict_row_category.append(j)
+    if j == len(books_url) - 1:
+        dict_to_csv(book_info, title_csv, dict_row_category)
     z = y
 
