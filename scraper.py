@@ -3,14 +3,21 @@ from extract import request, img_url, upc, price_in_tax, price_ex_tax, nb_availa
 from load import save_image, dict_to_csv
 from transform import categories_url, category_pages, review_rating_number
 
+# Book index URL
 url = 'http://books.toscrape.com/catalogue/category/books_1/page-1.html'
+
+# List of books URL
 books_url = category_pages(categories_url(url))
+
+# Dictionary of books information
 book_info = {}
+
+# Writing a CSV file with each category as a title
 title_csv = 'Travel'
 dict_row_category = []
+
 x = 0
 z = 1
-
 for j in range(len(books_url)):
     book_url = books_url[j]
     bs = request(book_url)
