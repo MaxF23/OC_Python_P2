@@ -1,6 +1,8 @@
 # OC_Python_P2
 # Utilisez les bases de Python pour l'analyse de marché*
 
+### Installation
+
 - Télécharger et placer les fichiers dans le répertoire voulu
 
 - Ouvrir le terminal et se placer dans le répertoire précédemment choisi grâce à la commande 
@@ -28,6 +30,8 @@
   ```
   pip install -r requirements.txt
   ```
+
+### Execution
 
 - Executer le programme 
   ```
